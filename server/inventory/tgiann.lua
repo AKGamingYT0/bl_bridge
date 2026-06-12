@@ -1,0 +1,80 @@
+local retreiveExportsData = require 'utils'.retreiveExportsData
+local overrideFunction = {}
+local tgiann_inventory = exports['tgiann-inventory']
+
+overrideFunction.methods = retreiveExportsData(tgiann_inventory, {
+    addItem = {
+        originalMethod = 'AddItem',
+        modifier = {
+            passSource = true,
+        }
+    },
+    removeItem = {
+        originalMethod = 'RemoveItem',
+        modifier = {
+            passSource = true,
+            effect = function(originalFun, source, name, count, slot)
+                return originalFun(source, name, count, nil, slot)
+            end,
+        }
+    },
+    setMetaData = {
+        originalMethod = 'SetMetadata',
+        modifier = {
+            passSource = true,
+        }
+    },
+    canCarryItem = {
+        originalMethod = 'CanCarryItem',
+        modifier = {
+            passSource = true,
+        }
+    },
+    getItem = {
+        originalMethod = 'GetItemByName',
+        modifier = {
+            passSource = true,
+        }
+    },
+    items = {
+        originalMethod = 'GetPlayerItems',
+        modifier = {
+            executeFunc = true,
+            passSource = true,
+        }
+    },
+})
+
+function overrideFunction.registerUsableItem(name, cb)
+    local framework = Config.convars.core
+    if framework == 'qb' or framework == 'qbx' then
+        local QBCore = exports['qb-core']:GetCoreObject()
+        QBCore.Functions.CreateUseableItem(name, function(source, item)
+            cb(source, item and item.slot, item and item.info)
+        end)
+    elseif framework == 'esx' then
+        local ESX = exports['es_extended']:getSharedObject()
+        ESX.RegisterUsableItem(name, function(source)
+            cb(source)
+        end)
+    end
+end
+
+function overrideFunction.registerInventory(id, data)
+    local type, name, items in data
+    if type == 'shop' then
+        pcall(function()
+            tgiann_inventory:RegisterShop(id, {
+                name = name or 'Shop',
+                inventory = items or {},
+            })
+        end)
+    elseif type == 'stash' then
+        local maxWeight, slots in data
+        pcall(function()
+            tgiann_inventory:RegisterStash(id, name or 'Stash', slots or 10, maxWeight or 20000)
+        end)
+    end
+end
+
+return overrideFunction
