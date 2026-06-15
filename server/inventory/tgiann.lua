@@ -19,9 +19,14 @@ overrideFunction.methods = retreiveExportsData(tgiann_inventory, {
         }
     },
     setMetaData = {
-        originalMethod = 'SetMetadata',
+        originalMethod = 'UpdateItemMetadata',
         modifier = {
             passSource = true,
+            effect = function(originalFun, src, slot, data)
+                local item = tgiann_inventory:GetItemBySlot(src, slot)
+                if not item or not item.name then return end
+                return originalFun(src, item.name, slot, data)
+            end
         }
     },
     canCarryItem = {
